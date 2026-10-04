@@ -18,6 +18,33 @@ from src.m5_enrichment import enrich_chunks
 from config import RERANK_TOP_K
 
 
+# parent_id is only unique within one document ("parent_0" exists in every file).
+parent_store: dict[str, str] = {}
+
+
+def _parent_key(source: str, parent_id: str) -> str:
+    return f"{source}::{parent_id}"
+
+
+def _expand_to_parents(reranked) -> list[str]:
+    """Small-to-big: rank by child chunks, hand the LLM their parent chunks (deduplicated)."""
+    contexts, seen = [], set()
+    for r in reranked:
+        key = _parent_key(r.metadata.get("source", ""), r.metadata.get("parent_id", ""))
+        text = parent_store.get(key, r.text)
+        if text not in seen:
+            seen.add(text)
+            contexts.append(text)
+    return contexts
+
+
+SYSTEM_PROMPT = """Bạn là trợ lý tra cứu chính sách nội bộ. Trả lời CHỈ dựa trên context được cung cấp.
+- Trả lời trực tiếp vào câu hỏi ngay câu đầu tiên, ngắn gọn, nêu rõ con số/người phụ trách.
+- Nếu context có nhiều phiên bản chính sách mâu thuẫn, dùng phiên bản mới nhất (số phiên bản hoặc ngày hiệu lực lớn hơn, hoặc văn bản ghi "thay thế") và nói rõ phiên bản cũ đã bị thay thế.
+- Nếu cần tính toán (cộng ngày phép, tính phí...), chỉ dùng số liệu có trong context và trình bày phép tính ngắn gọn.
+- Chỉ trả lời "Không tìm thấy." khi context thực sự không chứa thông tin liên quan."""
+
+
 def build_pipeline():
     """Build production RAG pipeline."""
     print("=" * 60)
@@ -29,8 +56,12 @@ def build_pipeline():
     print("\n[1/4] Chunking documents...", flush=True)
     docs = load_documents()
     all_chunks = []
+    parent_store.clear()
     for doc in docs:
         parents, children = chunk_hierarchical(doc["text"], metadata=doc["metadata"])
+        source = doc["metadata"].get("source", "")
+        for parent in parents:
+            parent_store[_parent_key(source, parent.metadata["parent_id"])] = parent.text
         for child in children:
             all_chunks.append({"text": child.text, "metadata": {**child.metadata, "parent_id": child.parent_id}})
     print(f"  ✓ {len(all_chunks)} chunks from {len(docs)} documents ({time.time()-t0:.1f}s)", flush=True)
@@ -66,16 +97,16 @@ def run_query(query: str, search: HybridSearch, reranker: CrossEncoderReranker) 
     results = search.search(query)
     docs = [{"text": r.text, "score": r.score, "metadata": r.metadata} for r in results]
     reranked = reranker.rerank(query, docs, top_k=RERANK_TOP_K)
-    contexts = [r.text for r in reranked] if reranked else [r.text for r in results[:3]]
+    contexts = _expand_to_parents(reranked) if reranked else [r.text for r in results[:3]]
 
     from config import OPENAI_API_KEY
     if OPENAI_API_KEY and contexts:
         try:
             from openai import OpenAI
             client = OpenAI()
-            context_str = "\n\n".join(contexts)
-            resp = client.chat.completions.create(model="gpt-4o-mini", messages=[
-                {"role": "system", "content": "Trả lời CHỈ dựa trên context. Nếu không có → nói 'Không tìm thấy.'"},
+            context_str = "\n\n---\n\n".join(contexts)
+            resp = client.chat.completions.create(model="gpt-4o-mini", temperature=0, messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": f"Context:\n{context_str}\n\nCâu hỏi: {query}"},
             ])
             answer = resp.choices[0].message.content

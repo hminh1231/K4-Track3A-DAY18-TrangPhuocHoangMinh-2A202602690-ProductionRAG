@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Module 4: RAGAS Evaluation — 4 metrics + failure analysis."""
 
-import os, sys, json
+import os, sys, json, math
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
@@ -34,50 +34,91 @@ def load_test_set(path: str = TEST_SET_PATH) -> list[dict]:
 def evaluate_ragas(questions: list[str], answers: list[str],
                    contexts: list[list[str]], ground_truths: list[str]) -> dict:
     """Run RAGAS evaluation."""
-    # TODO: Implement RAGAS evaluation
-    # 1. Wrap trong try/except — RAGAS cần OPENAI_API_KEY và Python 3.11+.
-    # try:
-    #     from ragas import evaluate
-    #     from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
-    #     from datasets import Dataset
-    #
-    #     dataset = Dataset.from_dict({
-    #         "question": questions, "answer": answers,
-    #         "contexts": contexts, "ground_truth": ground_truths,
-    #     })
-    #     result = evaluate(dataset, metrics=[faithfulness, answer_relevancy,
-    #                                         context_precision, context_recall])
-    #     df = result.to_pandas()
-    #     per_question = [EvalResult(question=row["question"], answer=row["answer"],
-    #         contexts=row["contexts"], ground_truth=row["ground_truth"],
-    #         faithfulness=float(row.get("faithfulness", 0.0)),
-    #         answer_relevancy=float(row.get("answer_relevancy", 0.0)),
-    #         context_precision=float(row.get("context_precision", 0.0)),
-    #         context_recall=float(row.get("context_recall", 0.0)))
-    #         for _, row in df.iterrows()]
-    #     return {"faithfulness": ..., "answer_relevancy": ...,
-    #             "context_precision": ..., "context_recall": ..., "per_question": [...]}
-    # except Exception as e:
-    #     print(f"  ⚠️  RAGAS evaluation failed: {e}")
-    #     return zeros
-    return {"faithfulness": 0.0, "answer_relevancy": 0.0,
-            "context_precision": 0.0, "context_recall": 0.0, "per_question": []}
+    empty = {m: 0.0 for m in METRICS}
+    empty["per_question"] = []
+    try:
+        from ragas import evaluate
+        from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
+        from datasets import Dataset
+
+        dataset = Dataset.from_dict({
+            "question": questions, "answer": answers,
+            "contexts": contexts, "ground_truth": ground_truths,
+        })
+        from ragas.run_config import RunConfig
+
+        result = evaluate(dataset, metrics=[faithfulness, answer_relevancy,
+                                            context_precision, context_recall],
+                          run_config=RunConfig(max_workers=4, timeout=180, max_retries=5))
+        df = result.to_pandas()
+
+        per_question = [
+            EvalResult(
+                question=row["question"],
+                answer=row["answer"],
+                contexts=list(row["contexts"]),
+                ground_truth=row["ground_truth"],
+                **{m: _to_float(row.get(m)) for m in METRICS},
+            )
+            for _, row in df.iterrows()
+        ]
+        # RAGAS yields NaN when the judge LLM fails on a row; average only the valid scores.
+        aggregate = {}
+        for m in METRICS:
+            valid = [v for v in (getattr(r, m) for r in per_question) if not math.isnan(v)]
+            aggregate[m] = sum(valid) / len(valid) if valid else 0.0
+        return {**aggregate, "per_question": per_question}
+    except Exception as e:
+        print(f"  ⚠️  RAGAS evaluation failed: {e}")
+        return empty
+
+
+METRICS = ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]
+
+DIAGNOSTIC_TREE = {
+    "faithfulness": ("LLM tự bịa câu trả lời ngoài tài liệu (hallucination)",
+                     "Thắt chặt system prompt, giảm temperature về 0"),
+    "context_recall": ("Hệ thống tìm kiếm bỏ sót đoạn văn đúng",
+                       "Cải thiện bước chunking hoặc bổ sung từ khóa BM25"),
+    "context_precision": ("Đoạn văn không liên quan bị xếp lên đầu",
+                          "Bổ sung Cross-Encoder reranking hoặc lọc theo metadata"),
+    "answer_relevancy": ("Câu trả lời bị lệch trọng tâm câu hỏi",
+                         "Viết lại prompt hướng dẫn mô hình trả lời trực tiếp hơn"),
+}
+
+
+def _to_float(value) -> float:
+    """Convert a RAGAS cell to float; unscored cells stay NaN so they are not mistaken for 0."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return math.nan
 
 
 def failure_analysis(eval_results: list[EvalResult], bottom_n: int = 10) -> list[dict]:
     """Analyze bottom-N worst questions using Diagnostic Tree."""
-    # TODO: Implement failure analysis
-    # 1. diagnostic_tree = {
-    #        "faithfulness": ("LLM hallucinating", "Tighten prompt, lower temperature"),
-    #        "context_recall": ("Missing relevant chunks", "Improve chunking or add BM25"),
-    #        "context_precision": ("Too many irrelevant chunks", "Add reranking or metadata filter"),
-    #        "answer_relevancy": ("Answer doesn't match question", "Improve prompt template"),
-    #    }
-    # 2. For each EvalResult: compute avg of 4 metrics, find worst_metric
-    # 3. Sort by avg ascending → take bottom_n
-    # 4. Return [{"question": ..., "worst_metric": ..., "score": ...,
-    #             "diagnosis": ..., "suggested_fix": ...}]
-    return []
+    analyzed = []
+    for r in eval_results:
+        scores = {m: getattr(r, m) for m in METRICS}
+        valid = {m: v for m, v in scores.items() if not math.isnan(v)}
+        if not valid:
+            continue
+        avg = sum(valid.values()) / len(valid)
+        worst_metric = min(valid, key=valid.get)
+        diagnosis, suggested_fix = DIAGNOSTIC_TREE[worst_metric]
+        analyzed.append({
+            "question": r.question,
+            "answer": r.answer,
+            "ground_truth": r.ground_truth,
+            "avg_score": round(avg, 4),
+            "worst_metric": worst_metric,
+            "score": round(valid[worst_metric], 4),
+            "scores": {m: (None if math.isnan(v) else round(v, 4)) for m, v in scores.items()},
+            "diagnosis": diagnosis,
+            "suggested_fix": suggested_fix,
+        })
+    analyzed.sort(key=lambda x: x["avg_score"])
+    return analyzed[:bottom_n]
 
 
 def save_report(results: dict, failures: list[dict], path: str = "reports/ragas_report.json"):

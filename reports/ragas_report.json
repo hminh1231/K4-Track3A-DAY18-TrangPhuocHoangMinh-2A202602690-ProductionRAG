@@ -1,0 +1,171 @@
+{
+  "aggregate": {
+    "faithfulness": 0.85,
+    "answer_relevancy": 0.8403087131835489,
+    "context_precision": 0.9749999999208333,
+    "context_recall": 0.95
+  },
+  "num_questions": 20,
+  "failures": [
+    {
+      "question": "Một nhân viên Senior có 9 năm thâm niên được nghỉ bao nhiêu ngày phép năm và lương trong khoảng nào?",
+      "answer": "Nhân viên Senior có 9 năm thâm niên được nghỉ **18 ngày phép năm** (15 + 3). Lương không được đề cập trong context.",
+      "ground_truth": "Theo chính sách v2024: 15 ngày cơ bản + 3 ngày thâm niên (9÷3=3) = 18 ngày phép. Lương Senior (P3-P4): 20-35 triệu VNĐ/tháng.",
+      "avg_score": 0.6729,
+      "worst_metric": "faithfulness",
+      "score": 0.3333,
+      "scores": {
+        "faithfulness": 0.3333,
+        "answer_relevancy": 0.8583,
+        "context_precision": 1.0,
+        "context_recall": 0.5
+      },
+      "diagnosis": "LLM tự bịa câu trả lời ngoài tài liệu (hallucination)",
+      "suggested_fix": "Thắt chặt system prompt, giảm temperature về 0"
+    },
+    {
+      "question": "Nhân viên tạm ứng 15 triệu, sau 20 ngày mới thanh toán. Bị phạt bao nhiêu?",
+      "answer": "Nhân viên sẽ bị phạt 2%/tháng trên số tiền chưa hoàn ứng. Số tiền chưa hoàn ứng là 15.000.000 VNĐ. \n\nPhí phạt = 15.000.000 VNĐ * 2% * (20 ngày / 30 ngày) = 15.000.000 VNĐ * 0.02 * (2/3) = 200.000 VNĐ.\n\nVậy, nhân viên bị phạt 200.000 VNĐ.",
+      "ground_truth": "Thời hạn thanh toán là 15 ngày. Quá hạn 5 ngày, bị tính phí 2%/tháng trên 15.000.000 VNĐ = 300.000 VNĐ/tháng (tính pro-rata khoảng 50.000 VNĐ cho 5 ngày).",
+      "avg_score": 0.7418,
+      "worst_metric": "faithfulness",
+      "score": 0.1667,
+      "scores": {
+        "faithfulness": 0.1667,
+        "answer_relevancy": 0.8004,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "LLM tự bịa câu trả lời ngoài tài liệu (hallucination)",
+      "suggested_fix": "Thắt chặt system prompt, giảm temperature về 0"
+    },
+    {
+      "question": "Nhân viên được tài trợ khóa học 25 triệu, nghỉ việc sau 8 tháng hoàn thành khóa học. Phải hoàn trả bao nhiêu?",
+      "answer": "Nhân viên phải hoàn trả **100% chi phí** đào tạo đã được tài trợ, tức là **25.000.000 VNĐ**.",
+      "ground_truth": "Nhân viên phải cam kết làm việc ít nhất 1 năm sau khi hoàn thành khóa học. Nghỉ sau 8 tháng là trước hạn cam kết, phải hoàn trả 100% chi phí tức 25.000.000 VNĐ.",
+      "avg_score": 0.8249,
+      "worst_metric": "faithfulness",
+      "score": 0.5,
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.7995,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "LLM tự bịa câu trả lời ngoài tài liệu (hallucination)",
+      "suggested_fix": "Thắt chặt system prompt, giảm temperature về 0"
+    },
+    {
+      "question": "Lương thử việc của nhân viên Junior mức cao nhất là bao nhiêu?",
+      "answer": "Lương thử việc của nhân viên Junior mức cao nhất là 17.000.000 VNĐ/tháng (85% của 20.000.000 VNĐ).",
+      "ground_truth": "Junior cao nhất là 20.000.000 VNĐ/tháng. Lương thử việc = 85% x 20.000.000 = 17.000.000 VNĐ/tháng.",
+      "avg_score": 0.831,
+      "worst_metric": "faithfulness",
+      "score": 0.5,
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.8241,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "LLM tự bịa câu trả lời ngoài tài liệu (hallucination)",
+      "suggested_fix": "Thắt chặt system prompt, giảm temperature về 0"
+    },
+    {
+      "question": "Nghỉ phép không lương 20 ngày cần ai phê duyệt?",
+      "answer": "Nghỉ phép không lương 20 ngày cần phê duyệt của **Giám đốc điều hành (CEO)**.",
+      "ground_truth": "Nghỉ 16-30 ngày cần phê duyệt của Giám đốc điều hành (CEO). Lưu ý: nghỉ trên 14 ngày không lương, nhân viên phải tự đóng phần bảo hiểm của mình.",
+      "avg_score": 0.8312,
+      "worst_metric": "faithfulness",
+      "score": 0.5,
+      "scores": {
+        "faithfulness": 0.5,
+        "answer_relevancy": 0.8247,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "LLM tự bịa câu trả lời ngoài tài liệu (hallucination)",
+      "suggested_fix": "Thắt chặt system prompt, giảm temperature về 0"
+    },
+    {
+      "question": "Có cần kích hoạt xác thực đa yếu tố (MFA) không?",
+      "answer": "Có, tất cả nhân viên **bắt buộc** kích hoạt MFA cho tài khoản email, VPN và các hệ thống nội bộ.",
+      "ground_truth": "Có, theo chính sách mật khẩu v2.0 hiện hành, tất cả nhân viên bắt buộc kích hoạt MFA cho email, VPN và hệ thống nội bộ. Chính sách cũ v1.0 không yêu cầu MFA.",
+      "avg_score": 0.8487,
+      "worst_metric": "context_recall",
+      "score": 0.5,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.8947,
+        "context_precision": 1.0,
+        "context_recall": 0.5
+      },
+      "diagnosis": "Hệ thống tìm kiếm bỏ sót đoạn văn đúng",
+      "suggested_fix": "Cải thiện bước chunking hoặc bổ sung từ khóa BM25"
+    },
+    {
+      "question": "Thâm niên bao nhiêu năm thì được cộng thêm ngày phép?",
+      "answer": "Nhân viên có thâm niên từ **3 năm trở lên** sẽ được cộng thêm **1 ngày phép** cho mỗi 3 năm làm việc liên tục.",
+      "ground_truth": "Theo chính sách v2024 hiện hành, nhân viên có thâm niên từ 3 năm trở lên được cộng thêm 1 ngày phép cho mỗi 3 năm. Chính sách cũ v2023 yêu cầu 5 năm.",
+      "avg_score": 0.849,
+      "worst_metric": "context_precision",
+      "score": 0.5,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.896,
+        "context_precision": 0.5,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Đoạn văn không liên quan bị xếp lên đầu",
+      "suggested_fix": "Bổ sung Cross-Encoder reranking hoặc lọc theo metadata"
+    },
+    {
+      "question": "Muốn mua thiết bị trị giá 55 triệu cần ai phê duyệt?",
+      "answer": "Cần Tổng Giám đốc (CEO) phê duyệt.",
+      "ground_truth": "Đơn hàng trên 50.000.000 VNĐ cần Tổng Giám đốc (CEO) phê duyệt.",
+      "avg_score": 0.9483,
+      "worst_metric": "answer_relevancy",
+      "score": 0.7933,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.7933,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Câu trả lời bị lệch trọng tâm câu hỏi",
+      "suggested_fix": "Viết lại prompt hướng dẫn mô hình trả lời trực tiếp hơn"
+    },
+    {
+      "question": "Phụ cấp ăn trưa hàng tháng là bao nhiêu?",
+      "answer": "Phụ cấp ăn trưa hàng tháng là **1.000.000 VNĐ/tháng**.",
+      "ground_truth": "Phụ cấp ăn trưa là 1.000.000 VNĐ/tháng, chi trả cùng kỳ lương.",
+      "avg_score": 0.9539,
+      "worst_metric": "answer_relevancy",
+      "score": 0.8156,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.8156,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Câu trả lời bị lệch trọng tâm câu hỏi",
+      "suggested_fix": "Viết lại prompt hướng dẫn mô hình trả lời trực tiếp hơn"
+    },
+    {
+      "question": "Nhân viên được nghỉ bao nhiêu ngày phép năm?",
+      "answer": "Nhân viên được nghỉ **15 ngày phép năm** theo chính sách phiên bản 2024.",
+      "ground_truth": "Theo chính sách hiện hành (v2024), nhân viên được nghỉ 15 ngày phép năm có lương. Chính sách cũ (v2023) là 12 ngày nhưng đã bị thay thế.",
+      "avg_score": 0.9545,
+      "worst_metric": "answer_relevancy",
+      "score": 0.8181,
+      "scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.8181,
+        "context_precision": 1.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Câu trả lời bị lệch trọng tâm câu hỏi",
+      "suggested_fix": "Viết lại prompt hướng dẫn mô hình trả lời trực tiếp hơn"
+    }
+  ]
+}
